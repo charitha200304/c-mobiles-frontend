@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import userReducer from '@/slices/userSlice'; // ✅ points to the correct reducer location
+import userReducer from '../slices/userSlice'; // Using relative path to avoid any path resolution issues
 
 export const store = configureStore({
     reducer: {

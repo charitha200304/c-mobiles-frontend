@@ -3,12 +3,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, Smartphone, Shield, Truck, Star } from "lucide-react"
 
-export default function HomePage() {
+export function Home() {
     return (
         <div className="min-h-screen">
-            {/* Hero Section */}
-            <section className="relative min-h-screen bg-gradient-to-br from-orange-400 via-red-500 to-pink-600 overflow-hidden">
-                <div className="absolute inset-0 bg-black/20"></div>
+            {/* Hero Section with Background Video */}
+            <section className="relative min-h-screen overflow-hidden">
+                {/* Background Video */}
+                <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
+                    <source src="src/assets/videos/homescreen video.mp4" type="video/mp4" />
+                    {/* Fallback for browsers that don't support video */}
+                </video>
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-black-400/80 via-red-500/80 to-pink-600/80"></div>
+                <div className="absolute inset-0 bg-black/30"></div>
+
+                {/* Content */}
                 <div className="relative z-10 container mx-auto px-4 py-20 flex flex-col justify-center min-h-screen">
                     <div className="max-w-4xl mx-auto text-center text-white">
                         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -23,7 +33,7 @@ export default function HomePage() {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Button size="lg" className="bg-white text-black hover:bg-gray-100 text-lg px-8 py-4">
-                                <Link href="/products" className="flex items-center gap-2">
+                                <Link to="/products" className="flex items-center gap-2 hover:no-underline">
                                     Shop Now <ArrowRight className="w-5 h-5" />
                                 </Link>
                             </Button>
@@ -32,7 +42,7 @@ export default function HomePage() {
                                 variant="outline"
                                 className="border-white text-white hover:bg-white hover:text-black text-lg px-8 py-4 bg-transparent"
                             >
-                                <Link href="/about">Learn More</Link>
+                                <Link to="/about" className="hover:no-underline">Learn More</Link>
                             </Button>
                         </div>
                     </div>
@@ -137,6 +147,26 @@ export default function HomePage() {
                                 View All Products <ArrowRight className="w-5 h-5" />
                             </Link>
                         </Button>
+                    </div>
+                </div>
+            </section>
+
+            {/* Newsletter Section */}
+            <section className="py-20 bg-gradient-to-r from-orange-400 to-red-500">
+                <div className="container mx-auto px-4 text-center">
+                    <div className="max-w-2xl mx-auto text-white">
+                        <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
+                        <p className="text-xl mb-8 opacity-90">
+                            Get the latest news about new products, exclusive deals, and mobile technology trends.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                            <input
+                                type="email"
+                                placeholder="Enter your email"
+                                className="flex-1 px-4 py-3 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
+                            />
+                            <Button className="bg-white text-orange-500 hover:bg-gray-100 px-6 py-3">Subscribe</Button>
+                        </div>
                     </div>
                 </div>
             </section>
