@@ -1,6 +1,10 @@
 import { Routes, Route } from 'react-router-dom';
 import { DefaultLayout } from "./view/common/DefaultLayout/DefaultLayout";
 import { Home } from "./view/pages/home/home";
+import About from "./view/pages/about/about";
+import Products from "./view/pages/products/products";
+import Services from "./view/pages/service/service";
+import Contact from "./view/pages/contact/contact";
 
 function App() {
   return (
@@ -8,7 +12,10 @@ function App() {
       <Routes>
         <Route path="/" element={<DefaultLayout />}>
           <Route index element={<Home />} />
-          {/* Add more routes here as needed */}
+          <Route path="about" element={<About />} />
+          <Route path="products" element={<Products />} />
+          <Route path="services" element={<Services />} />
+          <Route path="contact" element={<Contact />} />
         </Route>
       </Routes>
     </div>

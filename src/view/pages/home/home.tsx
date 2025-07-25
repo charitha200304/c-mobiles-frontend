@@ -1,24 +1,20 @@
-import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Smartphone, Shield, Truck, Star } from "lucide-react"
+import { Link } from "react-router-dom";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, Smartphone, Shield, Truck, Star } from "lucide-react";
 
 export function Home() {
     return (
         <div className="min-h-screen">
             {/* Hero Section with Background Video */}
             <section className="relative min-h-screen overflow-hidden">
-                {/* Background Video */}
                 <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover">
                     <source src="src/assets/videos/homescreen video.mp4" type="video/mp4" />
-                    {/* Fallback for browsers that don't support video */}
                 </video>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-black-400/80 via-red-500/80 to-pink-600/80"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-white-500/80 to-white-600/80"></div>
                 <div className="absolute inset-0 bg-black/30"></div>
 
-                {/* Content */}
                 <div className="relative z-10 container mx-auto px-4 py-20 flex flex-col justify-center min-h-screen">
                     <div className="max-w-4xl mx-auto text-center text-white">
                         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -28,27 +24,26 @@ export function Home() {
               </span>
                         </h1>
                         <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto">
-                            Discover the latest smartphones, accessories, and cutting-edge technology at C-Mobiles. Your gateway to
-                            the future.
+                            Discover the latest smartphones, accessories, and cutting-edge technology at C-Mobiles.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Button size="lg" className="bg-white text-black hover:bg-gray-100 text-lg px-8 py-4">
-                                <Link to="/products" className="flex items-center gap-2 hover:no-underline">
-                                    Shop Now <ArrowRight className="w-5 h-5" />
-                                </Link>
-                            </Button>
-                            <Button
-                                size="lg"
-                                variant="outline"
-                                className="border-white text-white hover:bg-white hover:text-black text-lg px-8 py-4 bg-transparent"
+                            <Link
+                                to="/products"
+                                className="inline-flex items-center justify-center gap-2 bg-white text-black text-lg font-medium px-8 py-4 rounded-md hover:bg-gray-100 transition"
                             >
-                                <Link to="/about" className="hover:no-underline">Learn More</Link>
-                            </Button>
+                                Shop Now <ArrowRight className="w-5 h-5" />
+                            </Link>
+
+                            <Link
+                                to="/about"
+                                className="inline-flex items-center justify-center gap-2 border border-white text-white text-lg font-medium px-8 py-4 rounded-md hover:bg-white hover:text-black transition"
+                            >
+                                Learn More
+                            </Link>
                         </div>
                     </div>
                 </div>
 
-                {/* Floating Elements */}
                 <div className="absolute top-20 right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
                 <div className="absolute bottom-20 left-10 w-48 h-48 bg-yellow-300/20 rounded-full blur-2xl"></div>
             </section>
@@ -64,41 +59,29 @@ export function Home() {
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                            <CardContent className="p-8 text-center">
-                                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Smartphone className="w-8 h-8 text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-4">Latest Technology</h3>
-                                <p className="text-gray-600">
-                                    Access to the newest smartphones and cutting-edge mobile technology from top brands worldwide.
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                            <CardContent className="p-8 text-center">
-                                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Shield className="w-8 h-8 text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-4">Warranty Protection</h3>
-                                <p className="text-gray-600">
-                                    Comprehensive warranty coverage and reliable after-sales support for all your purchases.
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                            <CardContent className="p-8 text-center">
-                                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Truck className="w-8 h-8 text-white" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-4">Fast Delivery</h3>
-                                <p className="text-gray-600">
-                                    Quick and secure delivery service to get your new device in your hands as soon as possible.
-                                </p>
-                            </CardContent>
-                        </Card>
+                        {[Smartphone, Shield, Truck].map((Icon, index) => (
+                            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+                                <CardContent className="p-8 text-center">
+                                    <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Icon className="w-8 h-8 text-white" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-4">
+                                        {index === 0
+                                            ? "Latest Technology"
+                                            : index === 1
+                                                ? "Warranty Protection"
+                                                : "Fast Delivery"}
+                                    </h3>
+                                    <p className="text-gray-600">
+                                        {index === 0
+                                            ? "Access to the newest smartphones and cutting-edge mobile technology from top brands worldwide."
+                                            : index === 1
+                                                ? "Comprehensive warranty coverage and reliable after-sales support for all your purchases."
+                                                : "Quick and secure delivery service to get your new device in your hands as soon as possible."}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -139,14 +122,12 @@ export function Home() {
                     </div>
 
                     <div className="text-center mt-12">
-                        <Button
-                            size="lg"
-                            className="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-lg px-8 py-4"
+                        <Link
+                            to="/products"
+                            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-400 to-red-500 text-white font-semibold text-lg px-8 py-4 rounded-md hover:from-orange-500 hover:to-red-600"
                         >
-                            <Link href="/products" className="flex items-center gap-2">
-                                View All Products <ArrowRight className="w-5 h-5" />
-                            </Link>
-                        </Button>
+                            View All Products <ArrowRight className="w-5 h-5" />
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -171,5 +152,5 @@ export function Home() {
                 </div>
             </section>
         </div>
-    )
+    );
 }

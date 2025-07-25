@@ -12,17 +12,17 @@ type ViteEnv = {
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '') as ViteEnv;
-  
-    // Only expose specific environment variables that start with VITE_
+
+  // Only expose specific environment variables that start with VITE_
   const processEnv = Object.entries(env).reduce((acc, [key, val]) => {
     if (key.startsWith('VITE_')) {
       acc[`import.meta.env.${key}`] = JSON.stringify(val);
     }
     return acc;
   }, {} as Record<string, any>);
-  
+
   processEnv['process.env.NODE_ENV'] = JSON.stringify(mode);
-  
+
   return {
     define: processEnv,
     plugins: [react()],

@@ -1,37 +1,41 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg' | 'icon';
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function Button({
-  children,
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      className={`px-4 py-2 rounded-md ${
-        variant === 'primary'
-          ? 'bg-blue-500 text-white hover:bg-blue-600'
-          : variant === 'secondary'
-          ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-          : variant === 'ghost'
-          ? 'bg-transparent hover:bg-gray-100'
-          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-      } ${
-        size === 'sm'
-          ? 'text-sm'
-          : size === 'lg'
-          ? 'text-lg'
-          : 'text-base'
-      } ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'default', size = 'md', ...props }, ref) => {
+    const variants = {
+      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+      ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+    };
+
+    const sizes = {
+      sm: 'h-9 rounded-md px-3',
+      md: 'h-10 rounded-lg px-4 py-2',
+      lg: 'h-11 rounded-md px-8',
+    };
+
+    return (
+      <button
+        className={cn(
+          'inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+
+Button.displayName = 'Button';
+
+export { Button };
