@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -9,7 +9,24 @@ import {
 import { Menu, Smartphone, Search, ShoppingCart, User } from "lucide-react";
 
 export default function Navbar() {
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const location = useLocation();
+    const isHomePage = location.pathname === '/';
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const isScrolled = window.scrollY > 10;
+            if (isScrolled !== scrolled) {
+                setScrolled(isScrolled);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [scrolled, isHomePage]);
 
     const navItems = [
         { name: "Home", href: "/" },
@@ -20,7 +37,9 @@ export default function Navbar() {
     ]
 
     return (
-        <nav className="fixed top-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-gray-800">
+        <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${!isHomePage ? 'bg-black shadow-md' : scrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'}`}>
+            {/* Backdrop filter for better readability when transparent */}
+            <div className={`absolute inset-0 -z-10 ${!isHomePage || scrolled ? 'bg-black' : 'bg-transparent'} transition-all duration-300`}></div>
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -28,27 +47,31 @@ export default function Navbar() {
                         <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-500 rounded-lg flex items-center justify-center">
                             <Smartphone className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-white">C-Mobiles</span>
+                        <span className={`text-xl font-bold ${!isHomePage || scrolled ? 'text-white' : 'text-white'}`}>C-Mobiles</span>
                     </Link>
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-8">
                         {navItems.map((item) => (
-                            <Link key={item.name} to={item.href} className="text-gray-300 hover:text-white transition-colors">
+                            <Link 
+                                key={item.name} 
+                                to={item.href} 
+                                className={`text-white hover:text-secondary-light transition-colors duration-200 font-medium ${!isHomePage || scrolled ? 'opacity-100' : 'opacity-90 hover:opacity-100'}`}
+                            >
                                 {item.name}
                             </Link>
                         ))}
                     </div>
 
                     {/* Desktop Actions */}
-                    <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="ghost" className="text-gray-300 hover:text-white h-9 w-9 p-1">
+                    <div className="hidden md:flex items-center space-x-1">
+                        <Button variant="ghost" className={`${!isHomePage || scrolled ? 'text-white hover:bg-primary-dark' : 'text-white/90 hover:bg-white/10'} h-10 w-10 p-2`}>
                             <Search className="w-5 h-5" />
                         </Button>
-                        <Button variant="ghost" className="text-gray-300 hover:text-white h-9 w-9 p-1">
+                        <Button variant="ghost" className={`${!isHomePage || scrolled ? 'text-white hover:bg-primary-dark' : 'text-white/90 hover:bg-white/10'} h-10 w-10 p-2`}>
                             <ShoppingCart className="w-5 h-5" />
                         </Button>
-                        <Button variant="ghost" className="text-gray-300 hover:text-white">
+                        <Button variant="ghost" className={`${!isHomePage || scrolled ? 'text-white hover:bg-primary-dark' : 'text-white/90 hover:bg-white/10'} h-10 w-10 p-2`}>
                             <User className="w-5 h-5" />
                         </Button>
                     </div>
@@ -56,7 +79,11 @@ export default function Navbar() {
                     {/* Mobile Menu */}
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" className="md:hidden text-white h-10 w-10 p-2">
+                            <Button 
+                                variant="ghost" 
+                                className={`md:hidden ${!isHomePage || scrolled ? 'text-white hover:bg-primary-dark' : 'text-white/90 hover:bg-white/10'} h-10 w-10 p-2`}
+                                onClick={() => setIsOpen(true)}
+                            >
                                 <Menu className="w-6 h-6" />
                             </Button>
                         </SheetTrigger>
