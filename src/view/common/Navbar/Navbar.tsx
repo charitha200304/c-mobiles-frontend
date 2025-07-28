@@ -67,16 +67,18 @@ export default function Navbar() {
                     </div>
 
                     {/* Desktop Icons */}
-                    <div className="hidden md:flex items-center space-x-1">
+                    <div className="hidden md:flex items-center space-x-4">
                         <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
                             <Search className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
                         </Button>
                         <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
                             <ShoppingCart className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
                         </Button>
-                        <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
-                            <User className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
-                        </Button>
+                        <Link to="/signup" className="group">
+                            <Button variant="ghost" className={`relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
+                                <User className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
+                            </Button>
+                        </Link>
                     </div>
 
                     {/* Mobile Menu */}
@@ -102,6 +104,13 @@ export default function Navbar() {
                                         </Link>
                                     </SheetClose>
                                 ))}
+                                <Link
+                                    to="/signup"
+                                    className="block w-full py-2 px-4 text-center rounded-md border border-white/20 text-white font-medium hover:bg-white/10 transition-colors"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    Sign Up
+                                </Link>
 
                                 {/* Mobile Icons */}
                                 <div className="flex items-center space-x-4 pt-6 border-t border-gray-800">
