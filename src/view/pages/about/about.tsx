@@ -95,12 +95,12 @@ export default function AboutPage() {
                     <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                         {[
                             {
-                                name: "Sarah Johnson",
+                                name: "Charitha Chiranjeewa",
                                 role: "CEO & Founder",
-                                image: "/placeholder.svg?height=300&width=300&text=Sarah",
+                                image: "src/assets/images/charitha1.jpg",
                             },
-                            { name: "Mike Chen", role: "CTO", image: "/placeholder.svg?height=300&width=300&text=Mike" },
-                            { name: "Emily Davis", role: "Head of Sales", image: "/placeholder.svg?height=300&width=300&text=Emily" },
+                            { name: "Nadun Sankalpa", role: "CTO", image: "src/assets/images/nadun.jpg" },
+                            { name: "Maheesha Dinushan", role: "Head of Sales", image: "src/assets/images/maheesha.jpg" },
                         ].map((member, index) => (
                             <Card key={index} className="border-0 shadow-lg text-center">
                                 <CardContent className="p-6">
