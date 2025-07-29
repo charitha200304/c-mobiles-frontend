@@ -1,3 +1,4 @@
+// src/view/common/Navbar/Navbar.tsx
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import {
     SheetClose
 } from "@/components/ui/sheet";
 import { Menu, Smartphone, Search, ShoppingCart, User } from "lucide-react";
+import SearchOverlay from '@/components/SearchOverlay';
 
 interface NavItem {
     name: string;
@@ -15,8 +17,10 @@ interface NavItem {
 }
 
 export default function Navbar() {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false); // State for mobile sheet
     const [scrolled, setScrolled] = useState(false);
+    const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false); // NEW STATE for search overlay
+
     const location = useLocation();
     const isHomePage = location.pathname === '/';
 
@@ -37,6 +41,12 @@ export default function Navbar() {
         { name: "Services", href: "/services" },
         { name: "Contact", href: "/contact" },
     ];
+
+    // Function to close mobile sheet and open search overlay
+    const handleMobileSearchClick = () => {
+        setIsOpen(false); // Close mobile sheet
+        setIsSearchOverlayOpen(true); // Open search overlay
+    };
 
     return (
         <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${!isHomePage ? 'bg-black shadow-md' : scrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'}`}>
@@ -68,7 +78,12 @@ export default function Navbar() {
 
                     {/* Desktop Icons */}
                     <div className="hidden md:flex items-center space-x-4">
-                        <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
+                        {/* Search Button */}
+                        <Button
+                            variant="ghost"
+                            className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}
+                            onClick={() => setIsSearchOverlayOpen(true)}
+                        >
                             <Search className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
                         </Button>
                         <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
@@ -114,11 +129,13 @@ export default function Navbar() {
 
                                 {/* Mobile Icons */}
                                 <div className="flex items-center space-x-4 pt-6 border-t border-gray-800">
-                                    <Link to="/search" className="text-gray-300 hover:text-white">
-                                        <Button variant="ghost" className="h-10 w-10 p-2">
-                                            <Search className="w-5 h-5" />
-                                        </Button>
-                                    </Link>
+                                    <Button
+                                        variant="ghost"
+                                        className="h-10 w-10 p-2 text-gray-300 hover:text-white"
+                                        onClick={handleMobileSearchClick}
+                                    >
+                                        <Search className="w-5 h-5" />
+                                    </Button>
                                     <Link to="/cart" className="text-gray-300 hover:text-white">
                                         <Button variant="ghost" className="h-10 w-10 p-2">
                                             <ShoppingCart className="w-5 h-5" />
@@ -135,6 +152,12 @@ export default function Navbar() {
                     </Sheet>
                 </div>
             </div>
+
+            {/* Render the SearchOverlay component */}
+            <SearchOverlay
+                isOpen={isSearchOverlayOpen}
+                onClose={() => setIsSearchOverlayOpen(false)}
+            />
         </nav>
     );
 }

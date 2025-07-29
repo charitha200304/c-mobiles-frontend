@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Smartphone, Shield, Truck, Star } from "lucide-react";
+import EmailSubscription from '@/components/emailsubscription'; // <-- IMPORT THE NEW COMPONENT
 
 export function Home() {
     return (
@@ -132,23 +133,12 @@ export function Home() {
                 </div>
             </section>
 
-            {/* Newsletter Section */}
+            {/* Newsletter Section - Replaced with EmailSubscription Component */}
             <section className="py-20 bg-gradient-to-r from-orange-400 to-red-500">
                 <div className="container mx-auto px-4 text-center">
-                    <div className="max-w-2xl mx-auto text-white">
-                        <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-                        <p className="text-xl mb-8 opacity-90">
-                            Get the latest news about new products, exclusive deals, and mobile technology trends.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                            <input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="flex-1 px-4 py-3 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
-                            />
-                            <Button className="bg-white text-orange-500 hover:bg-gray-100 px-6 py-3">Subscribe</Button>
-                        </div>
-                    </div>
+                    {/* The EmailSubscription component already has its own styling for the gradient, text, etc. */}
+                    {/* So we just need to render it here. */}
+                    <EmailSubscription />
                 </div>
             </section>
         </div>
