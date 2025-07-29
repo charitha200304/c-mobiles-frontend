@@ -88,7 +88,9 @@ export default function EmailSubscription() {
             {message && (
                 <div
                     className={`mt-6 p-3 rounded-lg flex items-center justify-center gap-2 max-w-md mx-auto
-                                ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+${message.type === 'success'
+                        ? 'bg-green-100 text-green-800 border border-green-300'
+                        : 'bg-red-100 text-green-800 border border-red-300'}`}
                 >
                     {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                     <span>{message.text}</span>
