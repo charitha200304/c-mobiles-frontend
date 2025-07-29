@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom" // Added useNavigate
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,8 +7,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, ArrowLeft, CheckCircle, User, Mail, Phone, MapPin, Shield } from "lucide-react"
+import axios from 'axios';
 
 export default function SignUpPage() {
+    const navigate = useNavigate(); // Initialize useNavigate hook
+
     const [showPassword, setShowPassword] = useState(false)
     const [formData, setFormData] = useState({
         name: "",
@@ -16,10 +19,12 @@ export default function SignUpPage() {
         password: "",
         phone: "",
         address: "",
-        role: "customer",
+        role: "customer", // Default role
     })
     const [acceptTerms, setAcceptTerms] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [signupSuccess, setSignupSuccess] = useState(false);
+    const [signupError, setSignupError] = useState<string | null>(null);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }))
@@ -27,29 +32,49 @@ export default function SignUpPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setSignupError(null);
+        setSignupSuccess(false);
+
         if (!acceptTerms) {
-            alert("You must agree to the terms and conditions")
+            setSignupError("You must agree to the terms and conditions");
             return
         }
 
         setIsLoading(true)
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            console.log("Form Submitted:", formData)
+            const response = await axios.post("http://localhost:3000/api/users/save-user", formData);
 
-            // Reset form
-            setFormData({
-                name: "",
-                email: "",
-                password: "",
-                phone: "",
-                address: "",
-                role: "customer",
-            })
-            setAcceptTerms(false)
+            if (response.data.success) {
+                console.log("User registered successfully:", response.data);
+                setSignupSuccess(true);
+
+                // Redirect after a short delay to allow success message to be seen
+                setTimeout(() => {
+                    navigate('/signin'); // Redirect to the sign-in page
+                }, 2000); // 2-second delay
+
+                // Reset form (optional, as page will redirect)
+                setFormData({
+                    name: "",
+                    email: "",
+                    password: "",
+                    phone: "",
+                    address: "",
+                    role: "customer",
+                })
+                setAcceptTerms(false)
+            } else {
+                setSignupError(response.data.message || "Signup failed. Please try again.");
+                console.error("Signup failed (backend response):", response.data);
+            }
         } catch (error) {
-            console.error("Signup failed:", error)
+            if (axios.isAxiosError(error)) {
+                console.error("Signup failed (Axios error):", error.response?.data || error.message);
+                setSignupError(error.response?.data?.message || error.message || "Network error. Please try again.");
+            } else {
+                console.error("Signup failed (unexpected error):", error);
+                setSignupError("An unexpected error occurred.");
+            }
         } finally {
             setIsLoading(false)
         }
@@ -86,6 +111,18 @@ export default function SignUpPage() {
                             <p className="text-slate-500 mt-2">Fill in your details to get started</p>
                         </CardHeader>
                         <CardContent className="px-8 pb-8">
+                            {signupSuccess && (
+                                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                    <strong className="font-bold">Success!</strong>
+                                    <span className="block sm:inline ml-2">Your account has been created. Redirecting to sign in...</span>
+                                </div>
+                            )}
+                            {signupError && (
+                                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                    <strong className="font-bold">Error!</strong>
+                                    <span className="block sm:inline ml-2">{signupError}</span>
+                                </div>
+                            )}
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Full Name */}
                                 <div className="space-y-3">
@@ -221,7 +258,7 @@ export default function SignUpPage() {
                                 </div>
 
                                 {/* Submit Button */}
-                                <Button type="submit" className="w-full h-12 mt-4" disabled={isLoading}>
+                                <Button type="submit" className="w-full h-12 mt-4 bg-black text-white hover:bg-gray-800" disabled={isLoading}>
                                     {isLoading ? "Creating Account..." : "Create Account"}
                                 </Button>
                             </form>

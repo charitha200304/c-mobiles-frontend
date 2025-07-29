@@ -1,15 +1,17 @@
 "use client"
 
 import React, { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Smartphone, ArrowLeft, Mail, Shield, LogIn } from "lucide-react"
+import axios from "axios"
 
 export default function SignInPage() {
+    const navigate = useNavigate()
     const [showPassword, setShowPassword] = useState(false)
     const [formData, setFormData] = useState({
         email: "",
@@ -17,20 +19,65 @@ export default function SignInPage() {
     })
     const [rememberMe, setRememberMe] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+    const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }))
+        setErrorMessage(null);
+        setSuccessMessage(null);
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setErrorMessage(null);
+        setSuccessMessage(null);
+
+        if (!BACKEND_API_URL) {
+            setErrorMessage("Backend API URL is not configured. Check your .env file.");
+            return;
+        }
+
         setIsLoading(true)
+        try {
+            const response = await axios.post(`${BACKEND_API_URL}/api/auth/login`, {
+                email: formData.email,
+                password: formData.password,
+            });
 
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+            if (response.status === 200) {
+                const { accessToken, refreshToken } = response.data;
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
 
-        console.log("Sign in with email:", formData.email)
-        setIsLoading(false)
+                setSuccessMessage("Login successful! Redirecting...");
+                console.log("Login successful:", response.data);
+
+                setTimeout(() => {
+                    navigate("/");
+                }, 1500);
+
+            } else {
+                setErrorMessage(response.data.message || "An unexpected error occurred.");
+            }
+        } catch (error: any) {
+            console.error("Login failed:", error);
+            if (axios.isAxiosError(error)) {
+                if (error.response && error.response.data && error.response.data.message) {
+                    setErrorMessage(error.response.data.message);
+                } else if (error.message) {
+                    setErrorMessage("Login failed: " + error.message);
+                } else {
+                    setErrorMessage("An unexpected network error occurred.");
+                }
+            } else {
+                setErrorMessage("An unexpected error occurred during login.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
@@ -72,6 +119,21 @@ export default function SignInPage() {
                         </CardHeader>
                         <CardContent className="px-8 pb-8">
                             <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Error Message Display */}
+                                {errorMessage && (
+                                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                        <strong className="font-bold">Error:</strong>
+                                        <span className="block sm:inline ml-2">{errorMessage}</span>
+                                    </div>
+                                )}
+                                {/* Success Message Display */}
+                                {successMessage && (
+                                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                        <strong className="font-bold">Success:</strong>
+                                        <span className="block sm:inline ml-2">{successMessage}</span>
+                                    </div>
+                                )}
+
                                 {/* Email */}
                                 <div className="space-y-3">
                                     <Label htmlFor="email" className="text-sm font-medium text-slate-700 uppercase tracking-wide">
