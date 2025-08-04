@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/sheet";
 import { Menu, Smartphone, Search, ShoppingCart, User } from "lucide-react";
 import SearchOverlay from '@/components/SearchOverlay';
+import {useCart} from "@/context/CartContext.tsx";
+import {Cart} from "@/components/Cart.tsx";
 
 interface NavItem {
     name: string;
@@ -17,9 +19,10 @@ interface NavItem {
 }
 
 export default function Navbar() {
-    const [isOpen, setIsOpen] = useState(false); // State for mobile sheet
+    const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false); // NEW STATE for search overlay
+    const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+    const { cartCount, toggleCart } = useCart();
 
     const location = useLocation();
     const isHomePage = location.pathname === '/';
@@ -86,8 +89,17 @@ export default function Navbar() {
                         >
                             <Search className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
                         </Button>
-                        <Button variant="ghost" className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
+                        <Button 
+                            variant="ghost" 
+                            className={`group relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}
+                            onClick={toggleCart}
+                        >
                             <ShoppingCart className="w-5 h-5 z-10 group-hover:scale-110 transition-transform duration-300" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Button>
                         <Link to="/signup" className="group">
                             <Button variant="ghost" className={`relative overflow-hidden ${!isHomePage || scrolled ? 'text-white' : 'text-white/90'} h-10 w-10 p-2`}>
@@ -158,6 +170,9 @@ export default function Navbar() {
                 isOpen={isSearchOverlayOpen}
                 onClose={() => setIsSearchOverlayOpen(false)}
             />
+            
+            {/* Render the Cart component */}
+            <Cart />
         </nav>
     );
 }

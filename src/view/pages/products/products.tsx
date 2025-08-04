@@ -1,29 +1,17 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge"
-import { Star, Filter, Grid, List } from "lucide-react"
+import { Star, Filter, Grid, List, ShoppingCart } from "lucide-react"
 import { useEffect, useState } from "react";
 import axios from 'axios';
-
-interface ProductDataForFrontend {
-    id: string;
-    name: string;
-    image: string;
-    rating: number;
-    specs: string[];
-    price: number;
-    originalPrice?: number;
-    currency: string;
-    isOnSale: boolean;
-    description?: string;
-    stock?: number;
-    category?: string;
-}
+import { useCart } from "@/context/CartContext";
+import type { ProductDataForFrontend } from "@/types";
 
 export default function ProductsPage() {
     const [products, setProducts] = useState<ProductDataForFrontend[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const { addToCart } = useCart();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -139,7 +127,11 @@ export default function ProductsPage() {
                                             )}
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600">
+                                            <Button 
+                                                className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600"
+                                                onClick={() => addToCart(product)}
+                                            >
+                                                <ShoppingCart className="mr-2 h-4 w-4" />
                                                 Add to Cart
                                             </Button>
                                             <Button variant="outline" className="px-4 bg-transparent">

@@ -12,26 +12,27 @@ import SearchPage from './view/pages/searchpage/SearchPage.tsx';
 import AboutPage from './view/pages/about/about.tsx';
 import ServicesPage from './view/pages/service/service.tsx';
 import ContactPage from './view/pages/contact/contact.tsx';
+import { CartProvider } from './context/CartContext.tsx';
 // ---------------------------------------------
 
 function App() {
     return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<DefaultLayout />}>
-                    <Route index element={<Home />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="search" element={<SearchPage />} />
-                    {/* --- NEW ROUTES FOR ABOUT, SERVICES, CONTACT --- */}
-                    <Route path="about" element={<AboutPage />} />
-                    <Route path="services" element={<ServicesPage />} />
-                    <Route path="contact" element={<ContactPage />} />
-                    {/* ----------------------------------------------- */}
-                </Route>
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/signin" element={<SignIn />} />
-            </Routes>
-        </Router>
+        <CartProvider>
+            <Router>
+                <Routes>
+                    <Route path="/" element={<DefaultLayout />}>
+                        <Route index element={<Home />} />
+                        <Route path="products" element={<Products />} />
+                        <Route path="search" element={<SearchPage />} />
+                        <Route path="about" element={<AboutPage />} />
+                        <Route path="services" element={<ServicesPage />} />
+                        <Route path="contact" element={<ContactPage />} />
+                    </Route>
+                    <Route path="/signup" element={<SignUp />} />
+                    <Route path="/signin" element={<SignIn />} />
+                </Routes>
+            </Router>
+        </CartProvider>
     );
 }
 
