@@ -2,76 +2,56 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge"
 import { Star, Filter, Grid, List } from "lucide-react"
+import { useEffect, useState } from "react";
+import axios from 'axios';
+
+interface ProductDataForFrontend {
+    id: string;
+    name: string;
+    image: string;
+    rating: number;
+    specs: string[];
+    price: number;
+    originalPrice?: number;
+    currency: string;
+    isOnSale: boolean;
+    description?: string;
+    stock?: number;
+    category?: string;
+}
 
 export default function ProductsPage() {
-    const products = [
-        {
-            id: 1,
-            name: "iPhone 15 Pro Max",
-            brand: "Apple",
-            price: 1199,
-            originalPrice: 1299,
-            rating: 4.8,
-            reviews: 245,
-            image: "/placeholder.svg?height=300&width=300&text=iPhone+15+Pro",
-            badge: "Best Seller",
-        },
-        {
-            id: 2,
-            name: "Samsung Galaxy S24 Ultra",
-            brand: "Samsung",
-            price: 1099,
-            originalPrice: 1199,
-            rating: 4.7,
-            reviews: 189,
-            image: "/placeholder.svg?height=300&width=300&text=Galaxy+S24",
-            badge: "New",
-        },
-        {
-            id: 3,
-            name: "Google Pixel 8 Pro",
-            brand: "Google",
-            price: 899,
-            originalPrice: 999,
-            rating: 4.6,
-            reviews: 156,
-            image: "/placeholder.svg?height=300&width=300&text=Pixel+8+Pro",
-            badge: "Sale",
-        },
-        {
-            id: 4,
-            name: "OnePlus 12",
-            brand: "OnePlus",
-            price: 799,
-            originalPrice: 849,
-            rating: 4.5,
-            reviews: 98,
-            image: "/placeholder.svg?height=300&width=300&text=OnePlus+12",
-            badge: "Popular",
-        },
-        {
-            id: 5,
-            name: "Xiaomi 14 Ultra",
-            brand: "Xiaomi",
-            price: 699,
-            originalPrice: 749,
-            rating: 4.4,
-            reviews: 87,
-            image: "/placeholder.svg?height=300&width=300&text=Xiaomi+14",
-            badge: "Value",
-        },
-        {
-            id: 6,
-            name: "Nothing Phone 2",
-            brand: "Nothing",
-            price: 599,
-            originalPrice: 649,
-            rating: 4.3,
-            reviews: 76,
-            image: "/placeholder.svg?height=300&width=300&text=Nothing+Phone",
-            badge: "Unique",
-        },
-    ]
+    const [products, setProducts] = useState<ProductDataForFrontend[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await axios.get('http://localhost:3000/api/products/get-all-products');
+                if (response.data.success) {
+                    setProducts(response.data.data);
+                } else {
+                    setError(response.data.message || "Failed to fetch products");
+                }
+            } catch (err) {
+                console.error("Error fetching products:", err);
+                setError("An error occurred while fetching products.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
+    if (loading) {
+        return <div className="min-h-screen flex items-center justify-center">Loading products...</div>;
+    }
+
+    if (error) {
+        return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
+    }
 
     return (
         <div className="min-h-screen pt-16 bg-gray-50">
@@ -134,17 +114,19 @@ export default function ProductsPage() {
                                             alt={product.name}
                                             className="w-full h-64 object-cover rounded-t-lg"
                                         />
-                                        <Badge className="absolute top-4 left-4 bg-gradient-to-r from-orange-400 to-red-500">
-                                            {product.badge}
-                                        </Badge>
+                                        {product.isOnSale && (
+                                            <Badge className="absolute top-4 left-4 bg-gradient-to-r from-orange-400 to-red-500">
+                                                Sale
+                                            </Badge>
+                                        )}
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm text-gray-500">{product.brand}</span>
+                                            <span className="text-sm text-gray-500">{product.category}</span>
                                             <div className="flex items-center gap-1">
                                                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                                                 <span className="text-sm text-gray-600">{product.rating}</span>
-                                                <span className="text-sm text-gray-400">({product.reviews})</span>
+                                                {/* <span className="text-sm text-gray-400">({product.reviews})</span> */}
                                             </div>
                                         </div>
                                         <h3 className="text-xl font-bold mb-3 group-hover:text-orange-500 transition-colors">
@@ -152,7 +134,9 @@ export default function ProductsPage() {
                                         </h3>
                                         <div className="flex items-center gap-2 mb-4">
                                             <span className="text-2xl font-bold text-orange-500">${product.price}</span>
-                                            <span className="text-lg text-gray-400 line-through">${product.originalPrice}</span>
+                                            {product.isOnSale && product.originalPrice && (
+                                                <span className="text-lg text-gray-400 line-through">${product.originalPrice}</span>
+                                            )}
                                         </div>
                                         <div className="flex gap-2">
                                             <Button className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600">
