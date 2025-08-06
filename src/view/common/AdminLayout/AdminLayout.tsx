@@ -1,9 +1,17 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Package, Users, ShoppingCart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('user');
+    // Redirect to signin page
+    navigate('/signin');
+  };
   
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: Home },
@@ -45,6 +53,7 @@ export default function AdminLayout() {
               </nav>
               <div className="mt-auto mb-4">
                 <Button
+                  onClick={handleLogout}
                   variant="ghost"
                   className="flex items-center w-full px-4 py-3 text-sm font-medium text-left text-gray-600 rounded-lg hover:bg-gray-100"
                 >
