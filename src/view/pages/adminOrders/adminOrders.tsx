@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, MoreHorizontal, Check, X, Truck, Package, Plus } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, MoreHorizontal, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,39 +7,187 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
-// Define the new OrderType based on your request
-type OrderType = {
-  id: string;
+// Define the Order type for better type safety
+export type OrderType = {
+  id: number;
+  _id?: string;
   userId: number;
   username: string;
   itemName: string;
   itemPrice: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  date: string; // Added date for display
+  itemStatus: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  totalPrice: number;
+  date: string;
 };
 
-// Initialize orders as an empty array - this is where your actual order data would go
-const orders: OrderType[] = [];
-
 export default function AdminOrders() {
+  const [orders, setOrders] = useState<OrderType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFormVisible, setIsFormVisible] = useState(false); // State to control form visibility
-  const [newOrder, setNewOrder] = useState({ // State for new order form data
-    userId: null as number | null, // Changed initial state to null
+  const [editOrderId, setEditOrderId] = useState<string | number | null>(null);
+  const [showDeleteId, setShowDeleteId] = useState<string | number | null>(null);
+
+  const [newOrder, setNewOrder] = useState({
+    userId: '',
     username: '',
     itemName: '',
-    itemPrice: null as number | null, // Changed initial state to null
-    status: 'pending' as 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
+    itemPrice: '',
+    status: 'pending' as OrderType['status'],
+    itemStatus: 'pending' as OrderType['itemStatus'],
+    totalPrice: '',
+    date: '',
   });
 
-  // Filter orders based on search term
-  const filteredOrders = orders.filter(order =>
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch orders when component mounts
+  const fetchOrders = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:3000/api/orders/get-all-orders');
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      const data = await response.json();
+      console.log('Fetched orders response:', data); // Debug: log backend response
+      // Map and normalize orders for the table
+      let rawOrders = [];
+      if (Array.isArray(data)) {
+        rawOrders = data;
+      } else if (Array.isArray(data.data)) {
+        rawOrders = data.data;
+      } else if (Array.isArray(data.orders)) {
+        rawOrders = data.orders;
+      }
+      // Map fields to required shape
+      const mappedOrders = rawOrders.map((order: any) => ({
+        id: order.id ?? order._id ?? '',
+        _id: order._id ?? order.id ?? '',
+        userId: order.userId,
+        username: order.username,
+        itemName: order.itemName,
+        itemPrice: order.itemPrice ?? order.totalPrice ?? 0,
+        status: order.status ?? order.itemStatus ?? 'pending',
+        itemStatus: order.itemStatus ?? order.status ?? 'pending',
+        totalPrice: order.totalPrice ?? order.itemPrice ?? 0,
+        date: order.date ?? order.createdAt ?? '',
+      }));
+      setOrders(mappedOrders);
+      if (!Array.isArray(rawOrders)) {
+        setError('Unexpected response format from backend');
+        toast.error('Unexpected response format from backend');
+      }
+    } catch (err) {
+      setError('Failed to load orders');
+      toast.error('Failed to load orders');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Helper function to get the correct status badge
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewOrder(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEdit = (order: OrderType & { _id?: string }) => {
+    if (!order._id) {
+      toast.error('This order cannot be edited because it does not have a valid backend ID.');
+      return;
+    }
+    setEditOrderId(order._id);
+    setIsFormVisible(true);
+    setNewOrder({
+      userId: String(order.userId),
+      username: order.username,
+      itemName: order.itemName,
+      itemPrice: String(order.itemPrice),
+      status: order.status as OrderType['status'],
+      itemStatus: order.itemStatus as OrderType['itemStatus'],
+      totalPrice: String(order.totalPrice),
+      date: order.date,
+    });
+  };
+
+  const handleDelete = async (id: string | number) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete order');
+      await fetchOrders();
+      toast.success('Order deleted');
+    } catch (err) {
+      toast.error('Failed to delete order');
+    } finally {
+      setIsLoading(false);
+      setShowDeleteId(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const orderData = {
+        ...newOrder,
+        userId: Number(newOrder.userId),
+        itemPrice: Number(newOrder.itemPrice),
+        totalPrice: Number(newOrder.totalPrice),
+      };
+      let putId = editOrderId;
+      let orderForEdit = null;
+      if (editOrderId && orders.length > 0) {
+        orderForEdit = orders.find(o => String(o._id) === String(editOrderId) || String(o.id) === String(editOrderId));
+        if (orderForEdit && orderForEdit._id) {
+          putId = orderForEdit._id;
+        } else {
+          toast.error('This order cannot be updated because it does not have a valid backend ID.');
+          setIsLoading(false);
+          return;
+        }
+      }
+      if (putId) {
+        const response = await fetch(`http://localhost:3000/api/orders/${putId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
+        });
+        if (!response.ok) throw new Error('Failed to save order');
+        await fetchOrders();
+        setNewOrder({ userId: '', username: '', itemName: '', itemPrice: '', status: 'pending' as OrderType['status'], itemStatus: 'pending' as OrderType['itemStatus'], totalPrice: '', date: '' });
+        setIsFormVisible(false);
+        setEditOrderId(null);
+        toast.success(editOrderId ? 'Order updated!' : 'Order added successfully!');
+      } else {
+        const response = await fetch('http://localhost:3000/api/orders/save-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
+        });
+        if (!response.ok) throw new Error('Failed to save order');
+        await fetchOrders();
+        setNewOrder({ userId: '', username: '', itemName: '', itemPrice: '', status: 'pending' as OrderType['status'], itemStatus: 'pending' as OrderType['itemStatus'], totalPrice: '', date: '' });
+        setIsFormVisible(false);
+        setEditOrderId(null);
+        toast.success('Order added successfully!');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while saving the order');
+      toast.error(err instanceof Error ? err.message : 'An error occurred while saving the order');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: OrderType['status']) => {
     switch (status) {
       case 'delivered':
@@ -57,85 +205,15 @@ export default function AdminOrders() {
     }
   };
 
-  // Helper function for dropdown menu actions based on status
-  const getStatusActions = (status: OrderType['status']) => {
-    switch (status) {
-      case 'pending':
-        return (
-            <>
-              <DropdownMenuItem>
-                <Check className="mr-2 h-4 w-4" />
-                <span>Mark as Processing</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
-                <X className="mr-2 h-4 w-4" />
-                <span>Cancel Order</span>
-              </DropdownMenuItem>
-            </>
-        );
-      case 'processing':
-        return (
-            <DropdownMenuItem>
-              <Truck className="mr-2 h-4 w-4" />
-              <span>Mark as Shipped</span>
-            </DropdownMenuItem>
-        );
-      case 'shipped':
-        return (
-            <DropdownMenuItem>
-              <Package className="mr-2 h-4 w-4" />
-              <span>Mark as Delivered</span>
-            </DropdownMenuItem>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Handler for form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewOrder(prev => ({
-      ...prev,
-      // If the value is an empty string, set the state to null, otherwise convert to number
-      [name]: value === '' ? null : Number(value),
-    }));
-  };
-
-  // Handler for status select change
-  const handleStatusChange = (value: OrderType['status']) => {
-    setNewOrder(prev => ({ ...prev, status: value }));
-  };
-
-  // Handler for form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const orderToAdd: OrderType = {
-      id: `ORD-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`, // Simple ID generation
-      date: new Date().toISOString().split('T')[0], // Current date
-      // Use 0 if the value is null, otherwise use the value
-      userId: newOrder.userId || 0,
-      username: newOrder.username,
-      itemName: newOrder.itemName,
-      // Use 0 if the value is null, otherwise use the value
-      itemPrice: newOrder.itemPrice || 0,
-      status: newOrder.status,
-    };
-
-    // In a real application, you would send orderToAdd data to your API here
-    console.log('New order submitted:', orderToAdd);
-
-    // Reset form and hide it
-    setNewOrder({
-      userId: null,
-      username: '',
-      itemName: '',
-      itemPrice: null,
-      status: 'pending',
-    });
-    setIsFormVisible(false);
-  };
+  // Filter orders based on search term
+  const filteredOrders = orders.filter(order => {
+    // Defensive: skip if order or order.id is undefined/null
+    if (!order || order.id === undefined || order.id === null) return false;
+    return (
+      order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.username && order.username.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  });
 
   // Conditional rendering for the "Add New Order" form
   if (isFormVisible) {
@@ -155,7 +233,7 @@ export default function AdminOrders() {
                   id="userId"
                   name="userId"
                   type="number"
-                  value={newOrder.userId ?? ''} // Use nullish coalescing to display empty string if null
+                  value={newOrder.userId} 
                   onChange={handleInputChange}
                   required
               />
@@ -166,7 +244,7 @@ export default function AdminOrders() {
                   id="username"
                   name="username"
                   value={newOrder.username}
-                  onChange={e => setNewOrder(prev => ({ ...prev, username: e.target.value }))}
+                  onChange={handleInputChange}
                   required
               />
             </div>
@@ -177,7 +255,7 @@ export default function AdminOrders() {
                     id="itemName"
                     name="itemName"
                     value={newOrder.itemName}
-                    onChange={e => setNewOrder(prev => ({ ...prev, itemName: e.target.value }))}
+                    onChange={handleInputChange}
                     required
                 />
               </div>
@@ -187,17 +265,45 @@ export default function AdminOrders() {
                     id="itemPrice"
                     name="itemPrice"
                     type="number"
-                    value={newOrder.itemPrice ?? ''} // Use nullish coalescing to display empty string if null
+                    value={newOrder.itemPrice} 
                     onChange={handleInputChange}
                     required
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="totalPrice">Total Price</Label>
+                <Input
+                    id="totalPrice"
+                    name="totalPrice"
+                    type="number"
+                    value={newOrder.totalPrice} 
+                    onChange={handleInputChange}
+                    required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={newOrder.status} onValueChange={(value) => setNewOrder(prev => ({ ...prev, status: value as OrderType['status'] }))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={newOrder.status} onValueChange={handleStatusChange}>
+              <Label htmlFor="itemStatus">Item Status</Label>
+              <Select value={newOrder.itemStatus} onValueChange={(value) => setNewOrder(prev => ({ ...prev, itemStatus: value as OrderType['itemStatus'] }))}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Select item status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -253,13 +359,13 @@ export default function AdminOrders() {
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500">Revenue</h3>
             <p className="text-2xl font-bold">
-              ${orders.reduce((sum, order) => sum + order.itemPrice, 0).toFixed(2)}
+              ${orders.reduce((sum, order) => sum + order.totalPrice, 0).toFixed(2)}
             </p>
           </div>
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500">Avg. Order Value</h3>
             <p className="text-2xl font-bold">
-              {orders.length > 0 ? `$${(orders.reduce((sum, order) => sum + order.itemPrice, 0) / orders.length).toFixed(2)}` : '$0.00'}
+              {orders.length > 0 ? `$${(orders.reduce((sum, order) => sum + order.totalPrice, 0) / orders.length).toFixed(2)}` : '$0.00'}
             </p>
           </div>
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
@@ -271,58 +377,77 @@ export default function AdminOrders() {
         </div>
 
         <div className="rounded-md border">
-          {filteredOrders.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+          {isLoading ? (
+            <div className="py-16 text-center text-gray-500">
+              <h3 className="mb-2 text-lg font-medium">Loading...</h3>
+            </div>
+          ) : error ? (
+            <div className="py-16 text-center text-red-600">
+              <h3 className="mb-2 text-lg font-medium">{error}</h3>
+            </div>
+          ) : filteredOrders.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Item Status</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Total Price</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order._id || order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>{order.username}</TableCell>
+                    <TableCell>{order.itemName}</TableCell>
+                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell className="text-right">${order.itemPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      {order._id ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(order)}>
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setShowDeleteId(order._id ?? null)} className="text-red-600">
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                            {order._id && showDeleteId === order._id && (
+                              <DropdownMenuItem onClick={() => handleDelete(order._id!)} className="text-red-600">
+                                <span>Confirm Delete</span>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span style={{ color: '#888', fontStyle: 'italic' }}>Not editable</span>
+                      )}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{order.username}</TableCell>
-                        <TableCell>{order.itemName}</TableCell>
-                        <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell className="text-right">${order.itemPrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <span>View Details</span>
-                              </DropdownMenuItem>
-                              {getStatusActions(order.status)}
-                              <DropdownMenuItem className="text-red-600">
-                                <span>Delete Order</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-              <div className="py-16 text-center text-gray-500">
-                <h3 className="mb-2 text-lg font-medium">No orders found</h3>
-                <p className="text-sm">
-                  Click the "Add Order" button to create your first order.
-                </p>
-              </div>
+            <div className="py-16 text-center text-gray-500">
+              <h3 className="mb-2 text-lg font-medium">No orders found</h3>
+              <p className="text-sm">
+                Click the "Add Order" button to create your first order.
+              </p>
+            </div>
           )}
         </div>
       </div>
