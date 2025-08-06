@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   UserPlus,
@@ -21,6 +21,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label'; // Added Label for form fields
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select for role
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import UserProfile from './UserProfile';
 
 // Define the User type for better type safety
 type UserType = {
@@ -35,14 +37,17 @@ type UserType = {
   phone: string;   // Added phone
 };
 
-// Initialize users as an empty array - this is where your actual user data would go
-const users: UserType[] = [];
-
 export default function AdminUsers() {
+  const [users, setUsers] = useState<UserType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFormVisible, setIsFormVisible] = useState(false); // State to control form visibility
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sortByIdAsc, setSortByIdAsc] = useState(true);
+  const [editUserId, setEditUserId] = useState<number | null>(null);
+  const [showDeleteId, setShowDeleteId] = useState<number | null>(null);
   const [newUser, setNewUser] = useState({ // State for new user form data
     name: '',
     email: '',
@@ -51,15 +56,101 @@ export default function AdminUsers() {
     phone: '',
     role: 'customer' as 'admin' | 'customer', // Default role for new users
   });
+  const [profileUser, setProfileUser] = useState<UserType | null>(null);
 
-  const filteredUsers = users.filter(user => {
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:3000/api/users/get-all-users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUsers(data.data || []);
+    } catch (err) {
+      setError('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
+
+  // Add/Edit User
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      let response;
+      if (editUserId) {
+        response = await fetch(`http://localhost:3000/api/users/${editUserId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser),
+        });
+      } else {
+        response = await fetch('http://localhost:3000/api/users/save-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser),
+        });
+      }
+      if (!response.ok) throw new Error('Failed to save user');
+      await fetchUsers();
+      setNewUser({ name: '', email: '', password: '', address: '', phone: '', role: 'customer' });
+      setIsFormVisible(false);
+      setEditUserId(null);
+    } catch (err) {
+      setError('Failed to save user');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Edit User
+  const handleEdit = (user: UserType) => {
+    setEditUserId(user.id);
+    setIsFormVisible(true);
+    // Only allow 'admin' or 'customer' roles in the form. If user is 'manager', default to 'customer'.
+    let safeRole: 'admin' | 'customer' = user.role === 'admin' ? 'admin' : 'customer';
+    setNewUser({
+      name: user.name,
+      email: user.email,
+      password: '',
+      address: user.address,
+      phone: user.phone,
+      role: safeRole,
+    });
+  };
+
+  // Delete User
+  const handleDelete = async (id: number) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/users/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete user');
+      await fetchUsers();
+    } catch (err) {
+      setError('Failed to delete user');
+    } finally {
+      setIsLoading(false);
+      setShowDeleteId(null);
+    }
+  };
+
+  // Sorting
+  const sortedUsers = [...users].sort((a, b) => sortByIdAsc ? a.id - b.id : b.id - a.id);
+
+  // Filtering
+  const filteredUsers = sortedUsers.filter(user => {
     const matchesSearch =
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -107,30 +198,27 @@ export default function AdminUsers() {
     setNewUser(prev => ({ ...prev, role: value }));
   };
 
-  // Handler for form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In a real application, you would send newUser data to your API here
-    console.log('New user submitted:', newUser);
-    // Reset form and hide it
-    setNewUser({
-      name: '',
-      email: '',
-      password: '',
-      address: '',
-      phone: '',
-      role: 'customer',
-    });
-    setIsFormVisible(false);
-  };
+  // Conditional rendering: Show profile if profileUser is set
+  if (profileUser) {
+    return <UserProfile user={profileUser} onClose={() => setProfileUser(null)} />;
+  }
 
   // Conditional rendering: Show form if isFormVisible is true
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px]">
+        <div className="mb-4 text-red-500 font-semibold">{error}</div>
+        <Button onClick={() => { setError(null); fetchUsers(); }}>Retry</Button>
+      </div>
+    );
+  }
+
   if (isFormVisible) {
     return (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Add New User</h2>
-            <Button variant="ghost" onClick={() => setIsFormVisible(false)}>
+            <h2 className="text-2xl font-bold tracking-tight">{editUserId ? 'Edit User' : 'Add New User'}</h2>
+            <Button variant="ghost" onClick={() => { setIsFormVisible(false); setEditUserId(null); }}>
               <X className="h-4 w-4" />
               <span className="sr-only">Cancel</span>
             </Button>
@@ -205,7 +293,7 @@ export default function AdminUsers() {
                 Cancel
               </Button>
               <Button type="submit">
-                Add User
+                {editUserId ? 'Save Changes' : 'Add User'}
               </Button>
             </div>
           </form>
@@ -319,6 +407,10 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[100px] cursor-pointer select-none flex items-center gap-1" onClick={() => setSortByIdAsc((prev) => !prev)}>
+                      ID
+                      <span>{sortByIdAsc ? '▲' : '▼'}</span>
+                    </TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -328,8 +420,9 @@ export default function AdminUsers() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
+                  {filteredUsers.map((user, idx) => (
+                      <TableRow key={user.id ? `user-${user.id}` : `idx-${idx}`}>
+                        <TableCell className="font-medium">#{user.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-9 w-9">
@@ -362,24 +455,20 @@ export default function AdminUsers() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem key="profile" onClick={() => setProfileUser(user)}>
                                 <User className="mr-2 h-4 w-4" />
                                 <span>View Profile</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem key="edit" onClick={() => handleEdit(user)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Edit User</span>
                               </DropdownMenuItem>
                               {user.role !== 'admin' && (
-                                  <DropdownMenuItem>
-                                    <Shield className="mr-2 h-4 w-4" />
-                                    <span>Change Role</span>
+                                  <DropdownMenuItem key="delete" className="text-red-600" onClick={() => setShowDeleteId(user.id)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
                                   </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Delete User</span>
-                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -396,6 +485,28 @@ export default function AdminUsers() {
               </div>
           )}
         </div>
+        {showDeleteId !== null && (
+          <AlertDialog open onOpenChange={() => setShowDeleteId(null)}>
+            <AlertDialogContent className="max-w-md rounded-lg p-6">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-red-500" /> Delete User
+                </AlertDialogTitle>
+                <AlertDialogDescription className="mt-2 text-gray-700">
+                  Are you sure you want to <span className="font-semibold text-red-600">delete</span> this user? <br />This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex flex-row justify-end gap-2 mt-6">
+                <AlertDialogCancel className="px-4 py-2 border rounded-md hover:bg-gray-100 transition" onClick={() => setShowDeleteId(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition" onClick={() => handleDelete(showDeleteId!)} disabled={isLoading}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
   );
 }
