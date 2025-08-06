@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit, Trash2, MoreHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 // Define the Product type for better type safety
 type Product = {
@@ -20,25 +22,153 @@ type Product = {
   imageUrl?: string;
 };
 
-// Mock data (for now) - you will replace this with a state management solution or API calls
-const products: Product[] = [];
+type NewProduct = {
+  name: string;
+  description: string;
+  price: string;
+  stock: string;
+  category: string;
+  imageUrl: string;
+};
 
 export default function AdminProducts() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [newProduct, setNewProduct] = useState({
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortByIdAsc, setSortByIdAsc] = useState(true);
+
+  const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
     description: '',
-    price: '', // Changed to empty string
-    stock: '', // Changed to empty string
+    price: '',
+    stock: '',
     category: '',
     imageUrl: '',
   });
 
-  const filteredProducts = products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [editProductId, setEditProductId] = useState<number | null>(null);
+  const [showDeleteId, setShowDeleteId] = useState<number | null>(null);
+
+  // Fetch products when component mounts
+  const fetchProducts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:3000/api/products/get-all-products');
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      setProducts(data.data || []);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products');
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewProduct(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditProductId(product.id);
+    setIsFormVisible(true);
+    setNewProduct({
+      name: product.name,
+      description: product.description,
+      price: String(product.price),
+      stock: String(product.stock),
+      category: product.category,
+      imageUrl: product.imageUrl || '',
+    });
+  };
+
+  const handleDelete = async (id: number) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to delete product');
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      toast.success('Product deleted');
+    } catch (err) {
+      toast.error('Failed to delete product');
+    } finally {
+      setIsLoading(false);
+      setShowDeleteId(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const productData = {
+        ...newProduct,
+        price: Number(newProduct.price),
+        stock: Number(newProduct.stock),
+      };
+
+      let response;
+      if (editProductId) {
+        response = await fetch(`http://localhost:3000/api/products/${editProductId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(productData),
+        });
+      } else {
+        response = await fetch('http://localhost:3000/api/products/save-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(productData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save product');
+      }
+
+      await fetchProducts();
+
+      setNewProduct({
+        name: '', description: '', price: '', stock: '', category: '', imageUrl: '',
+      });
+      setIsFormVisible(false);
+      setEditProductId(null);
+      toast.success(editProductId ? 'Product updated!' : 'Product added successfully!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while saving the product');
+      toast.error(err instanceof Error ? err.message : 'An error occurred while saving the product');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: Product['status']) => {
     switch (status) {
@@ -53,59 +183,49 @@ export default function AdminProducts() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  // Remove duplicate products by id
+  const uniqueProducts = Array.from(new Map(products.map(p => [p.id, p])).values());
+  const filteredProducts = uniqueProducts.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    // Regular expression to check for valid number format (integers or floats)
-    // and also allows an empty string.
-    const numberRegex = /^-?\d*\.?\d*$/;
+  // Sort filteredProducts by ID
+  const sortedProducts = [...filteredProducts].sort((a, b) =>
+    sortByIdAsc ? a.id - b.id : b.id - a.id
+  );
 
-    // Only update price and stock if the value is a valid number or an empty string
-    if (name === 'price' || name === 'stock') {
-      if (value === '' || numberRegex.test(value)) {
-        setNewProduct(prev => ({
-          ...prev,
-          [name]: value,
-        }));
-      }
-    } else {
-      setNewProduct(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the newProduct data to your API
-    console.log('New product submitted:', {
-      ...newProduct,
-      price: Number(newProduct.price),
-      stock: Number(newProduct.stock),
-    });
-    // Reset form and hide it
-    setNewProduct({
-      name: '',
-      description: '',
-      price: '',
-      stock: '',
-      category: '',
-      imageUrl: '',
-    });
-    setIsFormVisible(false);
-  };
+  // Return the loading spinner or form view
+  if (isLoading && !isFormVisible) {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+    );
+  }
 
   if (isFormVisible) {
     return (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Add New Product</h2>
-            <Button variant="ghost" onClick={() => setIsFormVisible(false)}>
+            <h2 className="text-2xl font-bold tracking-tight">{editProductId ? 'Edit Product' : 'Add New Product'}</h2>
+            <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsFormVisible(false);
+                  setError(null);
+                  setEditProductId(null);
+                }}
+                disabled={isLoading}
+            >
               <X className="h-4 w-4" />
               <span className="sr-only">Cancel</span>
             </Button>
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Product Name</Label>
@@ -117,6 +237,7 @@ export default function AdminProducts() {
                   required
               />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -124,16 +245,20 @@ export default function AdminProducts() {
                   name="description"
                   value={newProduct.description}
                   onChange={handleInputChange}
+                  rows={3}
                   required
               />
             </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="price">Price</Label>
                 <Input
                     id="price"
                     name="price"
-                    type="text"
+                    type="number"
+                    min="0"
+                    step="0.01"
                     value={newProduct.price}
                     onChange={handleInputChange}
                     required
@@ -144,13 +269,15 @@ export default function AdminProducts() {
                 <Input
                     id="stock"
                     name="stock"
-                    type="text"
+                    type="number"
+                    min="0"
                     value={newProduct.stock}
                     onChange={handleInputChange}
                     required
                 />
               </div>
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
               <Input
@@ -161,6 +288,7 @@ export default function AdminProducts() {
                   required
               />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="imageUrl">Image URL</Label>
               <Input
@@ -171,12 +299,39 @@ export default function AdminProducts() {
                   onChange={handleInputChange}
               />
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsFormVisible(false)}>
+
+            {error && (
+                <div className="p-4 bg-red-50 text-red-700 rounded-md border border-red-200">
+                  <p className="font-medium">Error</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+            )}
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsFormVisible(false);
+                    setError(null);
+                    setEditProductId(null);
+                  }}
+                  disabled={isLoading}
+              >
                 Cancel
               </Button>
-              <Button type="submit">
-                Save Product
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                ) : (
+                    editProductId ? 'Update Product' : 'Save Product'
+                )}
               </Button>
             </div>
           </form>
@@ -184,11 +339,20 @@ export default function AdminProducts() {
     );
   }
 
+  // Main table view
   return (
       <div className="space-y-6">
         <div className="flex flex-col justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
           <h2 className="text-2xl font-bold tracking-tight">Products</h2>
           <div className="flex items-center space-x-2">
+            <Button
+                onClick={() => setIsFormVisible(true)}
+                className="flex items-center space-x-2"
+                disabled={isLoading}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Product</span>
+            </Button>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
@@ -197,21 +361,28 @@ export default function AdminProducts() {
                   className="pl-8 sm:w-[300px]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={isLoading}
               />
             </div>
-            <Button onClick={() => setIsFormVisible(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
           </div>
         </div>
 
+        {error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-md border border-red-200">
+              <p className="font-medium">Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
+        )}
+
         <div className="rounded-md border">
-          {filteredProducts.length > 0 ? (
+          {sortedProducts.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">ID</TableHead>
+                    <TableHead className="w-[100px] cursor-pointer select-none flex items-center gap-1" onClick={() => setSortByIdAsc((prev) => !prev)}>
+                      ID
+                      <span>{sortByIdAsc ? '▲' : '▼'}</span>
+                    </TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Price</TableHead>
@@ -221,8 +392,8 @@ export default function AdminProducts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
+                  {sortedProducts.map((product, idx) => (
+                      <TableRow key={`${product.id}-${idx}`}>
                         <TableCell className="font-medium">#{product.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
@@ -253,11 +424,11 @@ export default function AdminProducts() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(product)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Edit</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteId(product.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 <span>Delete</span>
                               </DropdownMenuItem>
@@ -278,7 +449,6 @@ export default function AdminProducts() {
           )}
         </div>
 
-        {/* Pagination */}
         <div className="flex items-center justify-end space-x-2 py-4">
           <div className="text-sm text-gray-500">
             Page 1 of 1
@@ -290,6 +460,28 @@ export default function AdminProducts() {
             Next
           </Button>
         </div>
+        {showDeleteId !== null && (
+          <AlertDialog open onOpenChange={() => setShowDeleteId(null)}>
+            <AlertDialogContent className="max-w-md rounded-lg p-6">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-red-500" /> Delete Product
+                </AlertDialogTitle>
+                <AlertDialogDescription className="mt-2 text-gray-700">
+                  Are you sure you want to <span className="font-semibold text-red-600">delete</span> this product? <br />This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex flex-row justify-end gap-2 mt-6">
+                <AlertDialogCancel className="px-4 py-2 border rounded-md hover:bg-gray-100 transition" onClick={() => setShowDeleteId(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition" onClick={() => handleDelete(showDeleteId!)} disabled={isLoading}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
   );
 }
