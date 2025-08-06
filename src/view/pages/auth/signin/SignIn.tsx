@@ -48,15 +48,40 @@ export default function SignInPage() {
       });
 
       if (response.status === 200) {
-        const { accessToken, refreshToken } = response.data;
+        console.log('Full login response:', response);
+        console.log('Response data:', response.data);
+        
+        const { accessToken, refreshToken, data } = response.data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        
+        // Store user data including role - handle nested existingUser object
+        const userData = data?.existingUser || data?.result?.existingUser || response.data?.data?.existingUser;
+        if (userData) {
+          console.log('User data from login:', userData);
+          console.log('User role:', userData.role);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
 
         setSuccessMessage("Login successful! Redirecting...");
         console.log("Login successful:", response.data);
 
         setTimeout(() => {
-          navigate("/");
+          // Get user data from nested existingUser object
+          const userData = data?.existingUser || data?.result?.existingUser || response.data?.data?.existingUser;
+          console.log('User data for redirection:', userData);
+          
+          // Check role and redirect accordingly
+          const userRole = userData?.role?.toLowerCase();
+          console.log('User role for redirection:', userRole);
+          
+          if (userRole === 'admin') {
+            console.log('Redirecting to admin dashboard');
+            navigate("/admin/dashboard");
+          } else {
+            console.log('Redirecting to home page');
+            navigate("/");
+          }
         }, 1500);
 
       } else {
