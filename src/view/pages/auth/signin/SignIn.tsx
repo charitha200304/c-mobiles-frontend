@@ -60,7 +60,16 @@ export default function SignInPage() {
         if (userData) {
           console.log('User data from login:', userData);
           console.log('User role:', userData.role);
-          localStorage.setItem('user', JSON.stringify(userData));
+          // Ensure userData has id and username fields for frontend use
+          const safeUserData = {
+            id: userData.id || userData._id || userData.userId,
+            username: userData.username || userData.name || userData.email,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            ...userData // preserve all other fields
+          };
+          localStorage.setItem('user', JSON.stringify(safeUserData));
         }
 
         setSuccessMessage("Login successful! Redirecting...");
