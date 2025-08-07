@@ -153,42 +153,47 @@ export default function AdminOrders() {
         itemPrice: Number(newOrder.itemPrice),
         totalPrice: Number(newOrder.totalPrice),
       };
-      let putId = editOrderId;
-      let orderForEdit = null;
-      if (editOrderId && orders.length > 0) {
-        orderForEdit = orders.find(o => String(o._id) === String(editOrderId) || String(o.id) === String(editOrderId));
-        if (orderForEdit && orderForEdit._id) {
-          putId = orderForEdit._id;
-        } else {
-          toast.error('This order cannot be updated because it does not have a valid backend ID.');
-          setIsLoading(false);
-          return;
-        }
-      }
-      if (putId) {
-        const response = await fetch(`http://localhost:3000/api/orders/update-order/${putId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData),
-        });
-        if (!response.ok) throw new Error('Failed to save order');
-        await fetchOrders();
-        setNewOrder({ userId: '', username: '', itemName: '', itemPrice: '', status: 'pending' as OrderType['status'], itemStatus: 'pending' as OrderType['itemStatus'], totalPrice: '', date: '' });
-        setIsFormVisible(false);
-        setEditOrderId(null);
-        toast.success(editOrderId ? 'Order updated!' : 'Order added successfully!');
-      } else {
-        const response = await fetch('http://localhost:3000/api/orders/save-order', {
+      // Only use the new backend endpoint for placing a new order
+      if (!editOrderId) {
+        const response = await fetch('http://localhost:3000/api/orders/place', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderData),
         });
-        if (!response.ok) throw new Error('Failed to save order');
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to place order');
         await fetchOrders();
         setNewOrder({ userId: '', username: '', itemName: '', itemPrice: '', status: 'pending' as OrderType['status'], itemStatus: 'pending' as OrderType['itemStatus'], totalPrice: '', date: '' });
         setIsFormVisible(false);
         setEditOrderId(null);
-        toast.success('Order added successfully!');
+        toast.success('Order placed successfully!');
+      } else {
+        // Existing logic for editing an order
+        let putId = editOrderId;
+        let orderForEdit = null;
+        if (editOrderId && orders.length > 0) {
+          orderForEdit = orders.find(o => String(o._id) === String(editOrderId) || String(o.id) === String(editOrderId));
+          if (orderForEdit && orderForEdit._id) {
+            putId = orderForEdit._id;
+          } else {
+            toast.error('This order cannot be updated because it does not have a valid backend ID.');
+            setIsLoading(false);
+            return;
+          }
+        }
+        if (putId) {
+          const response = await fetch(`http://localhost:3000/api/orders/update-order/${putId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData),
+          });
+          if (!response.ok) throw new Error('Failed to save order');
+          await fetchOrders();
+          setNewOrder({ userId: '', username: '', itemName: '', itemPrice: '', status: 'pending' as OrderType['status'], itemStatus: 'pending' as OrderType['itemStatus'], totalPrice: '', date: '' });
+          setIsFormVisible(false);
+          setEditOrderId(null);
+          toast.success('Order updated successfully!');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while saving the order');
