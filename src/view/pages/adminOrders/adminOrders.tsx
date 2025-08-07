@@ -8,6 +8,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 // Define the Order type for better type safety
 export type OrderType = {
@@ -118,7 +128,7 @@ export default function AdminOrders() {
   const handleDelete = async (id: string | number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/orders/${id}`, {
+      const response = await fetch(`http://localhost:3000/api/orders/delete-order/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete order');
@@ -156,7 +166,7 @@ export default function AdminOrders() {
         }
       }
       if (putId) {
-        const response = await fetch(`http://localhost:3000/api/orders/${putId}`, {
+        const response = await fetch(`http://localhost:3000/api/orders/update-order/${putId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderData),
@@ -205,8 +215,15 @@ export default function AdminOrders() {
     }
   };
 
+  // Sort orders by id (string compare, descending)
+  const sortedOrders = [...orders].sort((a, b) => {
+    const idA = a._id?.toString() || a.id?.toString() || '';
+    const idB = b._id?.toString() || b.id?.toString() || '';
+    return idB.localeCompare(idA);
+  });
+
   // Filter orders based on search term
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = sortedOrders.filter(order => {
     // Defensive: skip if order or order.id is undefined/null
     if (!order || order.id === undefined || order.id === null) return false;
     return (
@@ -402,14 +419,17 @@ export default function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
+                {filteredOrders.map((order, idx) => (
                   <TableRow key={order._id || order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell className="font-medium">{idx + 1}</TableCell>
+                    <TableCell>{order.userId}</TableCell>
                     <TableCell>{order.username}</TableCell>
                     <TableCell>{order.itemName}</TableCell>
                     <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>{getStatusBadge(order.itemStatus)}</TableCell>
                     <TableCell className="text-right">${order.itemPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">${order.totalPrice.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       {order._id ? (
                         <DropdownMenu>
@@ -423,14 +443,9 @@ export default function AdminOrders() {
                             <DropdownMenuItem onClick={() => handleEdit(order)}>
                               <span>Edit</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setShowDeleteId(order._id ?? null)} className="text-red-600">
+                            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteId(order._id!)}>
                               <span>Delete</span>
                             </DropdownMenuItem>
-                            {order._id && showDeleteId === order._id && (
-                              <DropdownMenuItem onClick={() => handleDelete(order._id!)} className="text-red-600">
-                                <span>Confirm Delete</span>
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
@@ -450,6 +465,28 @@ export default function AdminOrders() {
             </div>
           )}
         </div>
+        {showDeleteId !== null && (
+          <AlertDialog open onOpenChange={() => setShowDeleteId(null)}>
+            <AlertDialogContent className="max-w-md rounded-lg p-6">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                  Delete Order
+                </AlertDialogTitle>
+                <AlertDialogDescription className="mt-2 text-gray-700">
+                  Are you sure you want to <span className="font-semibold text-red-600">delete</span> this order? <br />This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex flex-row justify-end gap-2 mt-6">
+                <AlertDialogCancel className="px-4 py-2 border rounded-md hover:bg-gray-100 transition" onClick={() => setShowDeleteId(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition" onClick={() => handleDelete(showDeleteId!)}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
   );
 }

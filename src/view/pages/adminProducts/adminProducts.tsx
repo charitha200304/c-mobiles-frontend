@@ -344,7 +344,18 @@ export default function AdminProducts() {
       <div className="space-y-6">
         <div className="flex flex-col justify-between space-y-4 sm:flex-row sm:items-center sm:space-y-0">
           <h2 className="text-2xl font-bold tracking-tight">Products</h2>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pl-8 w-full sm:w-[300px]"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  disabled={isLoading}
+              />
+            </div>
             <Button
                 onClick={() => setIsFormVisible(true)}
                 className="flex items-center space-x-2"
@@ -353,17 +364,6 @@ export default function AdminProducts() {
               <Plus className="h-4 w-4" />
               <span>Add Product</span>
             </Button>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="pl-8 sm:w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  disabled={isLoading}
-              />
-            </div>
           </div>
         </div>
 
@@ -373,6 +373,27 @@ export default function AdminProducts() {
               <p className="text-sm">{error}</p>
             </div>
         )}
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Total Products</h3>
+            <p className="text-2xl font-bold">{products.length}</p>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Total Stock</h3>
+            <p className="text-2xl font-bold">{products.reduce((sum, p) => sum + p.stock, 0)}</p>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Inventory Value</h3>
+            <p className="text-2xl font-bold">
+              ${products.reduce((sum, p) => sum + p.price * p.stock, 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500">Categories</h3>
+            <p className="text-2xl font-bold">{[...new Set(products.map(p => p.category))].length}</p>
+          </div>
+        </div>
 
         <div className="rounded-md border">
           {sortedProducts.length > 0 ? (
