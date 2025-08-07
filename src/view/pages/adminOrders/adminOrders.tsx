@@ -84,7 +84,13 @@ export default function AdminOrders() {
         totalPrice: order.totalPrice ?? order.itemPrice ?? 0,
         date: order.date ?? order.createdAt ?? '',
       }));
-      setOrders(mappedOrders);
+      // Sort orders by id ascending (to match DB and UI expectations)
+      const sortedOrders = mappedOrders.sort((a: OrderType, b: OrderType) => {
+        const aId = typeof a.id === 'number' ? a.id : parseInt(a.id) || 0;
+        const bId = typeof b.id === 'number' ? b.id : parseInt(b.id) || 0;
+        return aId - bId; // ascending order
+      });
+      setOrders(sortedOrders);
       if (!Array.isArray(rawOrders)) {
         setError('Unexpected response format from backend');
         toast.error('Unexpected response format from backend');
@@ -220,15 +226,8 @@ export default function AdminOrders() {
     }
   };
 
-  // Sort orders by id (string compare, descending)
-  const sortedOrders = [...orders].sort((a, b) => {
-    const idA = a._id?.toString() || a.id?.toString() || '';
-    const idB = b._id?.toString() || b.id?.toString() || '';
-    return idB.localeCompare(idA);
-  });
-
   // Filter orders based on search term
-  const filteredOrders = sortedOrders.filter(order => {
+  const filteredOrders = orders.filter(order => {
     // Defensive: skip if order or order.id is undefined/null
     if (!order || order.id === undefined || order.id === null) return false;
     return (
@@ -424,41 +423,48 @@ export default function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order, idx) => (
-                  <TableRow key={order._id || order.id}>
-                    <TableCell className="font-medium">{idx + 1}</TableCell>
-                    <TableCell>{order.userId}</TableCell>
-                    <TableCell>{order.username}</TableCell>
-                    <TableCell>{order.itemName}</TableCell>
-                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell>{getStatusBadge(order.itemStatus)}</TableCell>
-                    <TableCell className="text-right">${order.itemPrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${order.totalPrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      {order._id ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(order)}>
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteId(order._id!)}>
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span style={{ color: '#888', fontStyle: 'italic' }}>Not editable</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredOrders
+                  .slice() // Create a shallow copy to avoid mutating state
+                  .sort((a: OrderType, b: OrderType) => {
+                    const aId = typeof a.id === 'number' ? a.id : parseInt(a.id) || 0;
+                    const bId = typeof b.id === 'number' ? b.id : parseInt(b.id) || 0;
+                    return aId - bId;
+                  })
+                  .map((order, idx) => (
+                    <TableRow key={order._id || order.id}>
+                      <TableCell className="font-medium">{idx + 1}</TableCell>
+                      <TableCell>{order.userId}</TableCell>
+                      <TableCell>{order.username}</TableCell>
+                      <TableCell>{order.itemName}</TableCell>
+                      <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{getStatusBadge(order.itemStatus)}</TableCell>
+                      <TableCell className="text-right">${order.itemPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">${order.totalPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        {order._id ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(order)}>
+                                <span>Edit</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600" onClick={() => setShowDeleteId(order._id!)}>
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span style={{ color: '#888', fontStyle: 'italic' }}>Not editable</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           ) : (
