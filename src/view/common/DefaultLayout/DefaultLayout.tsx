@@ -4,6 +4,9 @@ import Navbar from "../Navbar/Navbar.tsx";
 import Footer from "../Footer/Footer.tsx";
 
 export function DefaultLayout() {
+    // Removed all framer-motion animation for customer side (DefaultLayout)
+    // Removed unused constant location
+
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />

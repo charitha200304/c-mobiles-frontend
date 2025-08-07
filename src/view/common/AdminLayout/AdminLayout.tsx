@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Package, Users, ShoppingCart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -21,6 +22,13 @@ export default function AdminLayout() {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const pageTransition = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    transition: { duration: 0.4 }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -83,7 +91,18 @@ export default function AdminLayout() {
             </div>
           </header>
           <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={pageTransition.initial}
+                animate={pageTransition.animate}
+                exit={pageTransition.exit}
+                transition={pageTransition.transition}
+                style={{ minHeight: '80vh' }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>
