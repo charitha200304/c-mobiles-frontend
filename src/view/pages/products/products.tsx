@@ -12,7 +12,7 @@ function getProductImage(productName: string) {
     const name = productName.toLowerCase();
     if (name === "iphone 15") return "/iphone 15.webp";
     if (name === "iphone 16") return "/iphone 16.jpg";
-    if (name === "huawei pro 15") return "/huawei.webp";
+    if (name === "huawei pro 15") return "/huawei-mate-50-pro-770x433.jpg";
     if (name === "xiaomi 15") return "/15-Ultra.jpg";
     if (name.includes("oneplus")) return "/oneplus.webp";
     if (name === "samsung s25 ultra") return "/samsung s25 ultra.webp";
@@ -108,11 +108,11 @@ export default function ProductsPage() {
                                 className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-2 group"
                             >
                                 <CardContent className="p-0">
-                                    <div className="relative">
+                                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center">
                                         <img
                                             src={getProductImage(product.name)}
                                             alt={product.name}
-                                            className="w-full h-64 object-cover rounded-t-lg"
+                                            className="w-full h-full object-contain p-6 bg-white rounded-t-lg"
                                         />
                                         {product.isOnSale && (
                                             <Badge className="absolute top-4 left-4 bg-gradient-to-r from-orange-400 to-red-500">

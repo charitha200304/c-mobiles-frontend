@@ -4,6 +4,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Smartphone, Shield, Truck, Star } from "lucide-react";
 import EmailSubscription from '@/components/emailsubscription'; // <-- IMPORT THE NEW COMPONENT
 
+const featuredProducts = [
+  {
+    name: "Apple iPhone 15",
+    price: 1299,
+    image: "/iphone 15.webp",
+    description: "Flagship Apple smartphone with A16 chip and advanced camera.",
+    rating: 4.8
+  },
+  {
+    name: "Samsung S25 Ultra",
+    price: 1199,
+    image: "/samsung s25 ultra.webp",
+    description: "Premium Samsung flagship with top-tier display and camera.",
+    rating: 4.7
+  },
+  {
+    name: "Xiaomi 15 Ultra",
+    price: 999,
+    image: "/15-Ultra.jpg",
+    description: "High-end Xiaomi device with Leica optics and fast charging.",
+    rating: 4.6
+  },
+];
+
 export function Home() {
     return (
         <div className="min-h-screen">
@@ -96,22 +120,22 @@ export function Home() {
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                        {[1, 2, 3].map((item) => (
-                            <Card key={item} className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-2">
+                        {featuredProducts.map((product) => (
+                            <Card key={product.name} className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-2">
                                 <CardContent className="p-0">
-                                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center">
-                                        <Smartphone className="w-24 h-24 text-gray-400" />
+                                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
+                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                                     </div>
                                     <div className="p-6">
                                         <div className="flex items-center mb-2">
                                             {[...Array(5)].map((_, i) => (
-                                                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                <Star key={i} className={`w-4 h-4 ${i < Math.round(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
                                             ))}
                                         </div>
-                                        <h3 className="text-xl font-bold mb-2">Premium Smartphone {item}</h3>
-                                        <p className="text-gray-600 mb-4">Latest flagship device with advanced features</p>
+                                        <h3 className="text-xl font-bold mb-2">{product.name}</h3>
+                                        <p className="text-gray-600 mb-4">{product.description}</p>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-2xl font-bold text-orange-500">$899</span>
+                                            <span className="text-2xl font-bold text-orange-500">${product.price}</span>
                                             <Button className="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600">
                                                 View Details
                                             </Button>
