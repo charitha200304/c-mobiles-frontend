@@ -7,6 +7,18 @@ import axios from 'axios';
 import { useCart } from "@/context/CartContext";
 import type { ProductDataForFrontend } from "@/types";
 
+// Helper function to get image based on product name
+function getProductImage(productName: string) {
+    const name = productName.toLowerCase();
+    if (name === "iphone 15") return "/iphone 15.webp";
+    if (name === "iphone 16") return "/iphone 16.jpg";
+    if (name === "huawei pro 15") return "/huawei.webp";
+    if (name === "xiaomi 15") return "/15-Ultra.jpg";
+    if (name.includes("oneplus")) return "/oneplus.webp";
+    if (name === "samsung s25 ultra") return "/samsung s25 ultra.webp";
+    return "/redmi note 13.png";
+}
+
 export default function ProductsPage() {
     const [products, setProducts] = useState<ProductDataForFrontend[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -98,7 +110,7 @@ export default function ProductsPage() {
                                 <CardContent className="p-0">
                                     <div className="relative">
                                         <img
-                                            src={product.image || "/placeholder.svg"}
+                                            src={getProductImage(product.name)}
                                             alt={product.name}
                                             className="w-full h-64 object-cover rounded-t-lg"
                                         />
