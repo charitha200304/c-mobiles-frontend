@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, ArrowLeft, CheckCircle, User, Mail, Phone, MapPin, Shield } from "lucide-react"
+import {Eye, EyeOff, ArrowLeft, CheckCircle, User, Mail, Phone, MapPin, Shield} from "lucide-react"
 import axios from 'axios';
 
 export default function SignUpPage() {
@@ -49,9 +49,9 @@ export default function SignUpPage() {
         console.log("User registered successfully:", response.data);
         setSignupSuccess(true);
 
-        // Redirect after a short delay to allow success message to be seen
+        // Redirect to home page after a short delay to allow success message to be seen
         setTimeout(() => {
-          navigate('/signin'); // Redirect to the sign-in page
+          navigate('/'); // Redirect to the home page
         }, 2000); // 2-second delay
 
         // Reset form (optional, as page will redirect)
@@ -193,25 +193,7 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
-                  {/* Role */}
-                  <div className="space-y-3">
-                    <Label htmlFor="role">Account Type</Label>
-                    <div className="relative">
-                      <Shield className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
-                      <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
-                        <SelectTrigger className="h-12 pl-12">
-                          <SelectValue placeholder="Select account type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="customer">Customer</SelectItem>
-                          <SelectItem value="business">Business</SelectItem>
-                          <SelectItem value="reseller">Reseller</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Password */}
+{/* Password */}
                   <div className="space-y-3">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
